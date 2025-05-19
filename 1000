@@ -1,0 +1,33 @@
+const expect = 1000;
+let actual = 0;
+const r = createReadable(expect);
+
+class MyTransform extends ParallelStream {
+  constructor() {
+    super({objectMode: true, maxParallel: 32, highWaterMark: 32});
+  }
+
+  _parallelTransform(data, enc, callback) {
+    setTimeout(() => {
+      console.log(++actual);
+      callback();
+    }, Math.random() * 100);
+  }
+}
+
+const t = new MyTransform();
+t.on('finish', () => {
+  assert.strictEqual(actual, expect); // AssertionError [ERR_ASSERTION]: 985 === 1000
+});
+
+r.pipe(t);
+
+function createReadable(size) {
+  let i = 0;
+  return new stream.Readable({
+    read: function () {
+      this.push(i < size ? i++ : null);
+    },
+    objectMode: true,
+  });
+}
